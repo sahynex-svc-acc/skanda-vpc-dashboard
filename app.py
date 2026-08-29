@@ -13,7 +13,7 @@ from starlette.staticfiles import StaticFiles
 load_dotenv()
 
 BASE = Path(__file__).parent
-CONTROL_PLANE = os.getenv('CONTROL_PLANE_URL', 'http://127.0.0.1:32000').rstrip('/')
+CONTROL_PLANE = os.getenv('CONTROL_PLANE_URL', 'http://127.0.0.1:30000').rstrip('/')
 DEPLOY_TOKEN = os.getenv('SKANDA_DEPLOY_TOKEN', '')
 ALLOWED = {x.strip().lower() for x in os.getenv('ALLOWED_GOOGLE_EMAILS', '').split(',') if x.strip()}
 SESSION_SECRET = os.getenv('SESSION_SECRET', '')
