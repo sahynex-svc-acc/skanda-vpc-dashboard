@@ -36,6 +36,12 @@ def authorized(email: str) -> bool:
 
 async def current_user(request: Request):
     user = request.session.get('user')
+    print(
+        f"AUTH DEBUG path={request.url.path} "
+        f"cookie={'YES' if request.headers.get('cookie') else 'NO'} "
+        f"session_user={'YES' if user else 'NO'}",
+        flush=True
+    )
     if not user:
         raise HTTPException(401, 'Authentication required')
     if not authorized(user.get('email', '')):
@@ -72,7 +78,11 @@ async def firebase_login(request: Request):
     if not token:
         raise HTTPException(400, 'Firebase ID token is required')
     try:
-        decoded = auth.verify_id_token(token, check_revoked=True)
+        decoded = auth.verify_id_token(
+            token,
+            check_revoked=True,
+            clock_skew_seconds=10,
+        )
     except Exception:
         raise HTTPException(401, 'Invalid or expired Firebase ID token')
     email = (decoded.get('email') or '').lower()
