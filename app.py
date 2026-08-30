@@ -50,21 +50,45 @@ async def current_user(request: Request):
     return user
 
 
-async def cp(method: str, path: str, *, json=None, params=None):
+async def cp(method: str, path: str, *, json=None, params=None, owner_uid=None):
     headers = {}
+
     if DEPLOY_TOKEN:
         headers['X-Skanda-Deploy-Token'] = DEPLOY_TOKEN
+
+    if owner_uid:
+        headers['X-Skanda-User-UID'] = owner_uid
+
     async with httpx.AsyncClient(timeout=120) as client:
-        response = await client.request(method, CONTROL_PLANE + path, json=json, params=params, headers=headers)
+        response = await client.request(
+            method,
+            CONTROL_PLANE + path,
+            json=json,
+            params=params,
+            headers=headers
+        )
+
     try:
         data = response.json()
     except Exception:
         data = {'detail': response.text or 'Control plane error'}
-    if response.status_code >= 400:
-        detail = data.get('detail', 'Control plane request failed') if isinstance(data, dict) else 'Control plane request failed'
-        raise HTTPException(response.status_code, detail)
-    return data
 
+    if response.status_code >= 400:
+        print(
+            f"CP DEBUG method={method} path={path} "
+            f"url={CONTROL_PLANE + path} "
+            f"status={response.status_code} "
+            f"owner_uid={'SET' if owner_uid else 'EMPTY'} "
+            f"deploy_token={'SET' if DEPLOY_TOKEN else 'EMPTY'} "
+            f"detail={data.get('detail', 'Control plane error')}",
+            flush=True
+        )
+        raise HTTPException(
+            response.status_code,
+            data.get('detail', 'Control plane error')
+        )
+
+    return data
 
 @app.get('/api/me')
 async def me(request: Request):
@@ -115,14 +139,21 @@ async def health(request: Request):
 
 @app.get('/api/apps')
 async def apps(request: Request):
-    await current_user(request)
-    return await cp('GET', '/api/apps')
+    user = await current_user(request)
+    return await cp('GET', '/api/apps', owner_uid=user['uid'])
 
 
 @app.post('/api/deploy')
 async def deploy(request: Request):
-    await current_user(request)
-    return await cp('POST', '/api/deploy', json=await request.json())
+    user = await current_user(request)
+    body = await request.json()
+    body['owner_uid'] = user['uid']
+    return await cp(
+        'POST',
+        '/api/deploy',
+        json=body,
+        owner_uid=user['uid']
+    )
 
 
 @app.post('/api/apps/{app_id}/stop')

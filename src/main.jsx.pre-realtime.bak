@@ -21,16 +21,7 @@ const Icon = ({ name, size = 18 }) => {
 function App(){
  const[me,setMe]=useState(null),[apps,setApps]=useState([]),[health,setHealth]=useState(null),[view,setView]=useState('overview'),[selected,setSelected]=useState(null),[deploy,setDeploy]=useState(false),[loading,setLoading]=useState(true),[toast,setToast]=useState('');
  const load=async()=>{try{const[m,a,h]=await Promise.all([api('/me'),api('/apps'),api('/health')]);setMe(m.user);setApps(Array.isArray(a) ? a : (a.apps || []));setHealth(h)}catch(e){if(e.message==='AUTH_REQUIRED')setMe(null);else setToast(e.message)}finally{setLoading(false)}};
- /* SKANDA_REALTIME_POLL */
-useEffect(() => {
-  load()
-
-  const timer = setInterval(() => {
-    load()
-  }, 3000)
-
-  return () => clearInterval(timer)
-}, []);useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),3500);return()=>clearTimeout(t)}},[toast]);
+ useEffect(()=>{load()},[]);useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),3500);return()=>clearTimeout(t)}},[toast]);
  const action=async(id,v)=>{try{await api(`/apps/${id}/${v}`,{method:'POST'});setToast(`${v} completed`);await load()}catch(e){setToast(e.message)}};
  if(loading)return <div className="splash"><div className="brandMark">S</div>Loading Skanda VPC…</div>;
  if(!me)return <Login/>;
